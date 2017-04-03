@@ -4,7 +4,8 @@ import java.awt.event.*
 
 class Calculator {
     def textField
-    def stack = [] as Stack
+    def stack = new Stack()
+    def stackOfstacks = new Stack()
     def lastNotNumberTyped = false
 
     Calculator() {
@@ -12,7 +13,7 @@ class Calculator {
     }
 
     def initUI() {
-        def frame = new JFrame(size: [200, 300], layout: new FlowLayout(), defaultCloseOperation: javax.swing.WindowConstants.EXIT_ON_CLOSE)
+        def frame = new JFrame(size: [200, 320], layout: new FlowLayout(), defaultCloseOperation: javax.swing.WindowConstants.EXIT_ON_CLOSE)
 
         textField = new TextField("0", 22)
         textField.setEnabled false
@@ -20,10 +21,19 @@ class Calculator {
 
         appendNumbersButtons frame
         appendDotButton frame
-        // appendBracketsButtons frame
+        appendBracketsButtons frame
         appendOperatorsButtons frame
+        appendNegateButton frame
+        appendClearButton frame
 
         frame.show()
+    }
+
+    def reset() {
+        textField.setText "0"
+        stack.clear()
+        stackOfstacks.clear()
+        lastNotNumberTyped = false
     }
 
     def appendNumbersButtons(frame) {
@@ -40,7 +50,7 @@ class Calculator {
     def appendBracketsButtons(frame) {
         for (bracket in ["(", ")"]) {
             def currentBracket = bracket
-            appendButtonWithAction(frame, currentBracket) { /*TODO: Obsluga nawiasow*/ }
+            appendButtonWithAction(frame, currentBracket) { bracketTyped(currentBracket) }
         }
     }
 
@@ -51,11 +61,38 @@ class Calculator {
         }
     }
 
+    def appendNegateButton(frame) {
+        appendButtonWithAction(frame, "+/-") { negateTyped() }
+    }
+
+    def appendClearButton(frame) {
+        appendButtonWithAction(frame, "C") { clearTyped() }
+    }
+
     def appendButtonWithAction(frame, buttonTitle, action) {
         def button = new JButton(buttonTitle)
         button.setPreferredSize(new Dimension(50, 30));
         frame.contentPane.add button
         button.addActionListener action
+    }
+
+    def clearTyped() {
+        reset()
+    }
+
+    def negateTyped() {
+        def text = textField.getText()
+        textField.setText (text[0] == "-" ? text.substring(1) : "-" + text)
+    }
+
+    def bracketTyped(bracket) {
+        if (bracket == "(") {
+            stackOfstacks.push(stack)
+            stack = new Stack()
+        } else if (bracket == ")") {
+            operatorTyped("=")
+            stack = stackOfstacks.pop()
+        }
     }
 
     def numberTyped(number) {
@@ -80,16 +117,21 @@ class Calculator {
 
     def operatorTyped(operator) {
         lastNotNumberTyped = true
-        def currentNumber = textField.getText() as double
+            def currentNumber = new BigDecimal(textField.getText())
+            
+            try {
+            def result = calculate(operator, currentNumber)
+            
+            if (operator != "=") {
+                stack.push result
+                stack.push operator
+            }
         
-        def result = calculate(operator, currentNumber)
-        
-        if (operator != "=") {
-            stack.push result
-            stack.push operator
+            textField.setText result.toPlainString()
+        } catch (ArithmeticException e) {
+            reset()
+            textField.setText "Error: " + e.getMessage()
         }
-       
-        textField.setText("" + result)
     }
 
     def calculate(currentOperator, currentNumber) {
@@ -106,19 +148,19 @@ class Calculator {
             
             def result = 0
             if (previousOperator == "+") {
-                result = previousNumber + currentNumber
+                result = previousNumber.add currentNumber
             }
 
             if (previousOperator == "-") {
-                result = previousNumber - currentNumber
+                result = previousNumber.subtract currentNumber
             }
             
             if (previousOperator == "*") {
-                result = previousNumber * currentNumber
+                result = previousNumber.multiply currentNumber
             }
 
             if (previousOperator == "/") {
-                result = previousNumber / currentNumber
+                result = previousNumber.divide currentNumber
             }
             
             return calculate(currentOperator, result)
