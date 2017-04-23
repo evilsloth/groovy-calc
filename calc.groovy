@@ -71,7 +71,7 @@ class Calculator {
 
     def appendButtonWithAction(frame, buttonTitle, action) {
         def button = new JButton(buttonTitle)
-        button.setPreferredSize(new Dimension(50, 30));
+        button.setPreferredSize(new Dimension(55, 30));
         frame.contentPane.add button
         button.addActionListener action
     }
@@ -89,7 +89,7 @@ class Calculator {
         if (bracket == "(") {
             stackOfstacks.push(stack)
             stack = new Stack()
-        } else if (bracket == ")") {
+        } else if (bracket == ")" && stackOfstacks.size() > 0) {
             operatorTyped("=")
             stack = stackOfstacks.pop()
         }
@@ -117,9 +117,9 @@ class Calculator {
 
     def operatorTyped(operator) {
         lastNotNumberTyped = true
-            def currentNumber = new BigDecimal(textField.getText())
+        def currentNumber = new BigDecimal(textField.getText())
             
-            try {
+        try {
             def result = calculate(operator, currentNumber)
             
             if (operator != "=") {
